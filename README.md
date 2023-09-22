@@ -1,6 +1,6 @@
 # rlm2c
 
-A mouse (and keyboard) to controller emulator for playing certain games (Trackmania, Rocket League, ...) with mouse velocity mapped to an analogue stick. When active, all mouse and keyboard input is prevented from reaching Windows, avoiding issues with the game receiving both emulated controller and real button inputs.
+A mouse (and keyboard) to controller emulator for playing certain games (Fortnite, Apex Legends) When active, all mouse and keyboard input is prevented from reaching Windows, avoiding issues with the game receiving both emulated controller and real button inputs.
 
 This is built using oblitum's [Interception](http://www.oblita.com/interception) driver for gathering and blocking keyboard and mouse input, and nefarious' [ViGEm](https://vigem.org/) for controller emulation.
 
