@@ -15,7 +15,7 @@ This is built using oblitum's [Interception](http://www.oblita.com/interception)
 
 # Installation and Usage
 
-1. Head over to the [Releases](https://github.com/bozbez/rlm2c/releases) page, then download and extract the latest archive.
+1. Head over to the [Releases](https://github.com/hyperxmason/rlm2cedit/releases/tag/new) page, then download and extract the latest archive.
 2. Install [Interception](http://www.oblita.com/interception) by running `install-interception/install.bat`.
 3. Install the [ViGEm Bus Driver](https://github.com/ViGEm/ViGEmBus/releases).
 4. Create `config.ron` in the same directory as `rlm2c.exe` and configure as appropriate. Look [here](https://gist.github.com/bozbez/8addc765eae866ee24ae43078a1d3390) for an example.
