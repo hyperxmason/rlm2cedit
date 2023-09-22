@@ -236,17 +236,10 @@ impl EventHandler {
             Some(ControllerAction::Button(controller_button)) => controller_button,
             Some(ControllerAction::Analog(x, y)) => {
                 if state == KeyState::Up {
-                    self.analog_locked = false;
+                    self.set_analog_linear_l(0.0, 0.0);
                     return;
                 }
-
-                self.analog_locked = true;
-                self.analog_lock_end = Instant::now() + Duration::from_secs(1_000_000);
-
-                self.analog_lock_x = *x;
-                self.analog_lock_y = *y;
-
-                self.set_analog(self.analog_lock_x, self.analog_lock_y);
+                self.set_analog_linear_l(*x, *y);
                 return;
             }
             None => return,
@@ -351,51 +344,45 @@ impl EventHandler {
             }
         }
 
-        if !self.analog_locked || now > self.analog_lock_end {
-            self.analog_locked = false;
+        // let window = self.config.sample_window.as_secs_f64();
+        let mut mouse_vel = (0.0, 0.0);
 
-            // let window = self.config.sample_window.as_secs_f64();
-            let mut mouse_vel = (0.0, 0.0);
-
-            /*
-            let dt_offset = if self.mouse_samples.len() > 0 {
-                let sample = self.mouse_samples[0];
-                if (now - sample.2).as_secs_f64() * 1000.0 < 1.0 {
-                    (now - sample.2).as_secs_f64()
-                } else {
-                    0.0005
-                }
+        /*
+        let dt_offset = if self.mouse_samples.len() > 0 {
+            let sample = self.mouse_samples[0];
+            if (now - sample.2).as_secs_f64() * 1000.0 < 1.0 {
+                (now - sample.2).as_secs_f64()
             } else {
-                0.0
-            };
-            */
-
-            for &(x, y, _) in self.mouse_samples.iter() {
-                // let dt = ((now - t).as_secs_f64() - dt_offset) / window;
-
-                mouse_vel.0 += x as f64;
-                mouse_vel.1 += y as f64;
+                0.0005
             }
-
-            // TODO: proper analog binds
-            if !self.config.analog_mask.0 {
-                mouse_vel.0 = 0.0;
-            }
-
-            if !self.config.analog_mask.1 {
-                mouse_vel.1 = 0.0;
-            }
-
-            let multiplier =
-                self.config.sensitivity / (1e4 * self.config.sample_window.as_secs_f64());
-
-            self.set_analog(
-                mouse_vel.0 as f64 * multiplier,
-                -mouse_vel.1 as f64 * multiplier,
-            );
         } else {
-            self.set_analog(self.analog_lock_x, self.analog_lock_y);
+            0.0
+        };
+        */
+
+        for &(x, y, _) in self.mouse_samples.iter() {
+            // let dt = ((now - t).as_secs_f64() - dt_offset) / window;
+
+            mouse_vel.0 += x as f64;
+            mouse_vel.1 += y as f64;
         }
+
+        // TODO: proper analog binds
+        if !self.config.analog_mask.0 {
+            mouse_vel.0 = 0.0;
+        }
+
+        if !self.config.analog_mask.1 {
+            mouse_vel.1 = 0.0;
+        }
+
+        let multiplier =
+            self.config.sensitivity / (1e4 * self.config.sample_window.as_secs_f64());
+
+        self.set_analog_linear(
+            mouse_vel.0 as f64 * multiplier,
+            -mouse_vel.1 as f64 * multiplier,
+        );
     }
 
     fn set_analog(&mut self, x: f64, y: f64) {
@@ -417,7 +404,7 @@ impl EventHandler {
         self.report.s_thumb_ly = (angle.sin() * radius * Self::ANALOG_MAX) as i16;
     }
 
-    fn set_analog_linear(&mut self, x: f64, y: f64) {
+    fn set_analog_linear_l(&mut self, x: f64, y: f64) {
         if x.abs() <= 1.0 && y.abs() <= 1.0 {
             self.report.s_thumb_lx = (x * Self::ANALOG_MAX) as i16;
             self.report.s_thumb_ly = (y * Self::ANALOG_MAX) as i16;
@@ -434,5 +421,24 @@ impl EventHandler {
 
         self.report.s_thumb_lx = (angle.cos() * new_radius * Self::ANALOG_MAX) as i16;
         self.report.s_thumb_ly = (angle.sin() * new_radius * Self::ANALOG_MAX) as i16;
+    }
+
+    fn set_analog_linear(&mut self, x: f64, y: f64) {
+        if x.abs() <= 1.0 && y.abs() <= 1.0 {
+            self.report.s_thumb_rx = (x * Self::ANALOG_MAX) as i16;
+            self.report.s_thumb_ry = (y * Self::ANALOG_MAX) as i16;
+
+            return;
+        }
+
+        let overshoot = x.abs().max(y.abs());
+
+        let angle = y.atan2(x);
+        let radius = (x.powi(2) + y.powi(2)).sqrt();
+
+        let new_radius = radius / overshoot;
+
+        self.report.s_thumb_rx = (angle.cos() * new_radius * Self::ANALOG_MAX) as i16;
+        self.report.s_thumb_ry = (angle.sin() * new_radius * Self::ANALOG_MAX) as i16;
     }
 }
