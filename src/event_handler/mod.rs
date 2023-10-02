@@ -162,6 +162,10 @@ impl EventHandler {
     }
 
     pub fn run(&mut self) -> Result<(), anyhow::Error> {
+        let mut w = false;
+        let mut a = false;
+        let mut s = false;
+        let mut d = false;
         loop {
             let iteration_start = Instant::now();
 
@@ -198,7 +202,41 @@ impl EventHandler {
                     }
 
                     Event::Keyboard(scancode, state) => {
-                        self.handle_bind(Bind::Keyboard(scancode), state)
+                        self.handle_bind(Bind::Keyboard(scancode), state);
+                        if state == KeyState::Up && scancode == ic::ScanCode::W {
+                            w = false;
+                        }
+                        if state == KeyState::Up && scancode == ic::ScanCode::A {
+                            a = false;
+                        }
+                        if state == KeyState::Up && scancode == ic::ScanCode::S {
+                            s = false;
+                        }
+                        if state == KeyState::Up && scancode == ic::ScanCode::D {
+                            d = false;
+                        }
+                        if state == KeyState::Down && scancode == ic::ScanCode::W {
+                            w = true;
+                        }
+                        if state == KeyState::Down && scancode == ic::ScanCode::A {
+                            a = true;
+                        }
+                        if state == KeyState::Down && scancode == ic::ScanCode::S {
+                            s = true;
+                        }
+                        if state == KeyState::Down && scancode == ic::ScanCode::D {
+                            d = true;
+                        }
+                        if w == s {
+                            self.report.s_thumb_ly = 0;
+                        } else {
+                            self.report.s_thumb_ly = if w { i16::MAX } else { i16::MIN };
+                        }
+                        if a == d {
+                            self.report.s_thumb_lx = 0;
+                        } else {
+                            self.report.s_thumb_lx = if d { i16::MAX } else { i16::MIN };
+                        }
                     }
 
                     Event::Reset => {
@@ -234,12 +272,7 @@ impl EventHandler {
     fn handle_bind(&mut self, bind: Bind, state: KeyState) {
         let controller_button = match self.config.binds.get(&bind) {
             Some(ControllerAction::Button(controller_button)) => controller_button,
-            Some(ControllerAction::Analog(x, y)) => {
-                if state == KeyState::Up {
-                    self.set_analog_linear_l(0.0, 0.0);
-                    return;
-                }
-                self.set_analog_linear_l(*x, *y);
+            Some(ControllerAction::Analog(_x, _y)) => {
                 return;
             }
             None => return,
@@ -402,25 +435,6 @@ impl EventHandler {
 
         self.report.s_thumb_lx = (angle.cos() * radius * Self::ANALOG_MAX) as i16;
         self.report.s_thumb_ly = (angle.sin() * radius * Self::ANALOG_MAX) as i16;
-    }
-
-    fn set_analog_linear_l(&mut self, x: f64, y: f64) {
-        if x.abs() <= 1.0 && y.abs() <= 1.0 {
-            self.report.s_thumb_lx = (x * Self::ANALOG_MAX) as i16;
-            self.report.s_thumb_ly = (y * Self::ANALOG_MAX) as i16;
-
-            return;
-        }
-
-        let overshoot = x.abs().max(y.abs());
-
-        let angle = y.atan2(x);
-        let radius = (x.powi(2) + y.powi(2)).sqrt();
-
-        let new_radius = radius / overshoot;
-
-        self.report.s_thumb_lx = (angle.cos() * new_radius * Self::ANALOG_MAX) as i16;
-        self.report.s_thumb_ly = (angle.sin() * new_radius * Self::ANALOG_MAX) as i16;
     }
 
     fn set_analog_linear(&mut self, x: f64, y: f64) {
